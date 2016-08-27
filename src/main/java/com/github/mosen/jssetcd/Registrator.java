@@ -1,5 +1,6 @@
 package com.github.mosen.jssetcd;
 
+import org.apache.log4j.Logger;
 import com.jamfsoftware.eventnotifications.JAMFEventNotificationMonitor;
 import com.jamfsoftware.eventnotifications.JAMFEventNotificationMonitorResponse;
 import com.jamfsoftware.eventnotifications.JAMFEventNotificationParameter;
@@ -24,6 +25,7 @@ import static com.jamfsoftware.eventnotifications.events.EventType.EventTypeIden
 public class Registrator implements JAMFEventNotificationMonitor
 {
     private static final String ETCD_URL = "http://etcd:8001";
+    static Logger log = Logger.getLogger(Registrator.class.getName());
 
     private Properties properties;
     private EtcdClient client;
@@ -33,9 +35,9 @@ public class Registrator implements JAMFEventNotificationMonitor
         properties.put("etcd_url", ETCD_URL);
 
         client = new EtcdClient(URI.create(ETCD_URL));
+        log.info("jss-etcd started");
     }
 
-    @Override
     public JAMFEventNotificationMonitorResponse eventOccurred(JAMFEventNotificationParameter param) {
         JAMFEventNotificationMonitorResponse response = new JAMFEventNotificationMonitorResponse(this);
         EventType.EventTypeIdentifier eventId = param.getEventType().getIdentifier();
@@ -53,12 +55,13 @@ public class Registrator implements JAMFEventNotificationMonitor
         return response;
     }
 
-    @Override
     public boolean isRegisteredForEvent(EventType.EventTypeIdentifier e) {
         return e == JSSStartup || e == JSSShutdown;
     }
 
     private void register(JSSEventShell evt) {
+        log.info("Attempting to register the JSS with etcd");
+
         try {
             EtcdKeysResponse response;
 
@@ -66,16 +69,16 @@ public class Registrator implements JAMFEventNotificationMonitor
             response = client.put("jss/institution", evt.getInstitution()).send().get();
             response = client.put("jss/url", evt.getJssUrl()).send().get();
             response = client.put("jss/path", evt.getWebApplicationPath()).send().get();
-//            response = client.put("jss/master", evt.getIsClusterMaster().toString()).send().get();
+            response = client.put("jss/master", evt.getIsClusterMaster() ? "true" : "false").send().get();
 
         } catch (EtcdAuthenticationException e) {
-            System.out.println("tough luck");
+            log.info("jssetcd failed to authenticate to etcd");
         } catch (EtcdException e) {
-            System.out.println("tough luck");
+            log.info("jssetcd got etcd exception: " + e.getMessage());
         } catch (IOException e) {
-            System.out.println("tough luck");
+            log.info("jssetcd got io exception, probably failed to connect.");
         } catch (TimeoutException e) {
-            System.out.println("tough luck");
+            log.info("jssetcd connection to etcd server timed out.");
         }
     }
 
