@@ -24,7 +24,7 @@ import static com.jamfsoftware.eventnotifications.events.EventType.EventTypeIden
  */
 public class Registrator implements JAMFEventNotificationMonitor
 {
-    private static final String ETCD_URL = "http://etcd:8001";
+    private static final String ETCD_URL = "http://etcd:4001";
     static Logger log = Logger.getLogger(Registrator.class.getName());
 
     private Properties properties;
@@ -64,7 +64,7 @@ public class Registrator implements JAMFEventNotificationMonitor
 
         try {
             EtcdKeysResponse response;
-
+            response = client.putDir("jss").send().get();
             response = client.put("jss/hostaddr", evt.getHostAddress()).send().get();
             response = client.put("jss/institution", evt.getInstitution()).send().get();
             response = client.put("jss/url", evt.getJssUrl()).send().get();
